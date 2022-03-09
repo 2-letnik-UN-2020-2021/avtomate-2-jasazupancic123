@@ -1,3 +1,4 @@
+package task
 import java.io.File
 import java.io.InputStream
 import java.util.*
@@ -70,8 +71,11 @@ object Example : Automaton {
         //!FLOAT
 
         //VARIABLE
+
         setTransition(1, "abceghijklmnopqrsuvwxyz", 5) //vse brez f, t, d zaradi for, to, do, done
         setTransition(1, "ABCDEFGHIJKLMNOPQRSTUVXYZ", 5) //vse brez W zaradi WRITE
+        //setTransition(1, ALPHABET_LOWER, 5)
+        //setTransition(1, ALPHABET_UPPER, 5)
         setTransition(5, ALPHABET_LOWER, 5)
         setTransition(5, ALPHABET_UPPER, 5)
         setTransition(5, NUMBERS, 6)
@@ -310,8 +314,8 @@ fun name(value: Int) =
         7 -> "pow"
         8 -> "lparen"
         9 -> "rparen"
-        10 -> "isEqual"
-        11 -> "semi-colon"
+        10 -> "assign"
+        11 -> "semi"
         12 -> "for"
         13 -> "do"
         14 -> "done"
