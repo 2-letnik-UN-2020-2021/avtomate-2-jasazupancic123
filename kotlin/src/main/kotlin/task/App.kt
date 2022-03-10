@@ -320,7 +320,7 @@ fun name(value: Int) =
         13 -> "do"
         14 -> "done"
         15 -> "to"
-        16 -> "WRITE"
+        16 -> "write"
         else -> throw Error("Invalid value")
     }
 
