@@ -29,7 +29,7 @@ const val DO: Int = 13
 const val DONE: Int = 14
 const val TO: Int = 15
 const val WRITE: Int = 16
-
+//test
 interface Automaton {
     val states: Set<Int>
     val alphabet: IntRange
