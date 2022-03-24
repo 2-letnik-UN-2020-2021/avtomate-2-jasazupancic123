@@ -29,7 +29,7 @@ const val DO: Int = 13
 const val DONE: Int = 14
 const val TO: Int = 15
 const val WRITE: Int = 16
-//test
+
 interface Automaton {
     val states: Set<Int>
     val alphabet: IntRange
@@ -378,8 +378,7 @@ class Parser(private val scanner: Scanner) {
         else -> true
     }
 
-    fun recognizeFor() = recognizeTerminal(VARIABLE) && recognizeAssign() && recognizeTerminal(TO) && recognizeE() &&
-            recognizeTerminal(DO) && recognizeStart() && recognizeTerminal(DONE)
+    fun recognizeFor() = recognizeTerminal(VARIABLE) && recognizeAssign() && recognizeTerminal(TO) && recognizeE() && recognizeTerminal(DO) && recognizeStart() && recognizeTerminal(DONE)
 
     fun recognizeAssign() = recognizeTerminal(ASSIGN) && recognizeE()
 
