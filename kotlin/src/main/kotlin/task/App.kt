@@ -13,6 +13,23 @@ const val WHITESPACES = " \n\t\r"
 
 const val NEWLINE = '\n'.code
 
+const val FLOAT: Int = 1
+const val VARIABLE: Int = 2
+const val PLUS: Int = 3
+const val MINUS: Int = 4
+const val TIMES: Int = 5
+const val DIVIDE: Int = 6
+const val POW: Int = 7
+const val LPAREN: Int = 8
+const val RPAREN: Int = 9
+const val ASSIGN: Int = 10
+const val SEMI: Int = 11
+const val FOR: Int = 12
+const val DO: Int = 13
+const val DONE: Int = 14
+const val TO: Int = 15
+const val WRITE: Int = 16
+
 interface Automaton {
     val states: Set<Int>
     val alphabet: IntRange
@@ -123,7 +140,7 @@ object Example : Automaton {
 
         //DODATNA
             //:=
-            setTransition(1, ":", 15) //15 je, ker so 14 whitespaci
+            setTransition(1, ":", 15)
             setTransition(15, "=", 16)
 
             setValue(16, 10)
@@ -255,6 +272,7 @@ class Scanner(private val automaton: Automaton, private val stream: InputStream)
     private var buffer = LinkedList<Byte>()
     private var row = 1
     private var column = 1
+    var currentToken: Token? = null
 
     private fun updatePosition(symbol: Int) {
         if (symbol == NEWLINE) {
@@ -335,8 +353,197 @@ fun printTokens(scanner: Scanner) {
 fun readFileDirectlyAsText(fileName: String): String
         = File(fileName).readText(Charsets.UTF_8)
 
+class Parser(private val scanner: Scanner) {
+    private var last: Token? = null
+
+    fun recognize(): Boolean {
+        last = scanner.getToken()
+        val status = recognizeStart()
+        return if (last == null) status else false
+    }
+
+    fun recognizeStart() : Boolean = recognizeStatement() && recognizeSemi()
+
+    fun recognizeStatement(): Boolean{
+        return when(last?.value ?: true){
+            FOR -> recognizeTerminal(FOR) && recognizeFor()
+            VARIABLE -> recognizeTerminal(VARIABLE) && recognizeAssign()
+            WRITE -> recognizeTerminal(WRITE) && recognizeE()
+            else -> true
+        }
+    }
+
+    fun recognizeSemi(): Boolean = when(last?.value ?: true){
+        SEMI -> recognizeTerminal(SEMI) && recognizeStart()
+        else -> true
+    }
+
+    fun recognizeFor() = recognizeTerminal(VARIABLE) && recognizeAssign() && recognizeTerminal(TO) && recognizeE() &&
+            recognizeTerminal(DO) && recognizeStart() && recognizeTerminal(DONE)
+
+    fun recognizeAssign() = recognizeTerminal(ASSIGN) && recognizeE()
+
+    // ...
+    fun recognizeE(): Boolean {
+        //print(" E ")
+        return recognizeT() && recognizeEE()
+    }
+    fun recognizeEE(): Boolean {
+        //print(" EE ")
+        val lookahead = last?.value
+        //println("Lookahead: $lookahead")
+        if (lookahead == null) {
+            true
+        }
+        return when(lookahead) {
+            PLUS -> {
+                //print(" plus ")
+                recognizeTerminal(PLUS) && recognizeT() && recognizeEE()
+            }
+            MINUS -> {
+                //print(" minus ")
+                recognizeTerminal(MINUS) && recognizeT() && recognizeEE()
+            }
+            else -> true //zaradi epsilona
+        }
+    }
+
+    fun recognizeT(): Boolean {
+        //print(" T ")
+        return recognizeX() && recognizeTT()
+    }
+    fun recognizeTT(): Boolean {
+        //print(" TT ")
+        val lookahead = last?.value
+        //println("Lookahead: $lookahead")
+        if (lookahead == null) {
+            true
+        }
+        return when(lookahead) {
+            TIMES -> {
+                //print(" times ")
+                recognizeTerminal(TIMES) && recognizeX() && recognizeTT()
+            }
+            DIVIDE -> {
+                //print(" divide ")
+                recognizeTerminal(DIVIDE) && recognizeX() && recognizeTT()
+            }
+            else -> true //zaradi epsilona
+        }
+    }
+
+    fun recognizeX(): Boolean{
+        //print(" X ")
+        return recognizeY() && recognizeXX()
+    }
+    fun recognizeXX(): Boolean {
+        //print(" XX ")
+        val lookahead = last?.value
+        //println("Lookahead: $lookahead")
+        if (lookahead == null) {
+            true
+        }
+        return when(lookahead){
+            POW -> {
+                //print(" pow ")
+                recognizeTerminal(POW) && recognizeX()
+            }
+            else -> true
+        }
+    }
+
+    fun recognizeY(): Boolean{
+        //print(" Y ")
+        val lookahead = last?.value
+        //println("Lookahead: $lookahead")
+        if (lookahead == null) {
+            true
+        }
+        return when(lookahead){
+            PLUS -> {
+                //print(" plus_in_y ")
+                recognizeTerminal(PLUS) && recognizeF()
+            }
+            MINUS -> {
+                //print(" minus_in_y")
+                recognizeTerminal(MINUS) && recognizeF()
+            }
+            else -> recognizeF()
+        }
+    }
+
+    fun recognizeF(): Boolean {
+        //print(" F ")
+        val lookahead = last?.value
+        //println("Lookahead: $lookahead")
+        if (lookahead == null) {
+            false
+        }
+
+        return when(lookahead){
+            VARIABLE -> {
+                //print(" variable ")
+                recognizeTerminal(VARIABLE)
+                //true
+            }
+            FLOAT -> {
+                //print(" FLOAT ")
+                recognizeTerminal(FLOAT)
+                //true
+            }
+            LPAREN -> {
+                //print(" lparen")
+                if(recognizeTerminal(LPAREN)){
+                    val lookahead = last?.value
+                    //println("Lookahead: $lookahead")
+                    if (lookahead == null) {
+                        true
+                    }
+                    if(recognizeE()){
+                        //print(" E_in_F ")
+                        val lookahead = last?.value
+                        //println("Lookahead: $lookahead")
+                        if (lookahead == null) {
+                            false
+                        }
+                        if(lookahead == RPAREN){
+                            //print(" rparen ")
+                            if(recognizeTerminal(RPAREN)){
+                                return true
+                            }
+                        }
+                    }
+                }
+                false
+            }
+            else -> false
+        }
+    }
+
+    private fun recognizeTerminal(value: Int): Boolean {
+        //print(" test1 ")
+        if (last?.value == value) {
+            //print(" test 2")
+            last = scanner.getToken()
+            return true
+        }
+        else return false
+    }
+
+}
+
 fun main(args: Array<String>) {
-    val wholeText: String = readFileDirectlyAsText(args[0])
+    /*VAJA1
+    val wholeText: String = readFileDirectlyAsText("test.txt")
     val scanner = Scanner(Example, (wholeText).byteInputStream())
     printTokens(scanner)
+     */
+
+    val wholeText: String = readFileDirectlyAsText(args[0])
+    val scanner = Scanner(Example, (wholeText).byteInputStream())
+    if(Parser(scanner = scanner).recognize()){
+        print("accept")
+    } else{
+        print("reject")
+    }
 }
